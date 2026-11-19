@@ -28,10 +28,11 @@ SYSTEM_PROMPT = (
     "If you don't know a university-specific fact, say so and suggest the right office to contact. "
     "When PROSPECTUS CONTEXT is given, answer university questions ONLY from it and cite pages like (Page 30)."
 )
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+RUNTIME_DIR = os.getenv("RUNTIME_DIR", "/tmp/salu-bot")
+UPLOAD_DIR = os.path.join(RUNTIME_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-DATABASE = os.path.join(app.instance_path, "unibot.sqlite3")
-os.makedirs(app.instance_path, exist_ok=True)
+DATABASE = os.path.join(RUNTIME_DIR, "unibot.sqlite3")
+os.makedirs(RUNTIME_DIR, exist_ok=True)
 
 
 def init_db():
