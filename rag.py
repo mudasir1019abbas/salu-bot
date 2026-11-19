@@ -3,13 +3,21 @@
 2) Optional: build_important(client) -> knowledge/important.md (AI-made key facts for fast replies)
 3) search(query) -> best matching chunks (BM25, no vector DB needed)
 """
-import os, re, json
+import os, re, json, shutil
 from rank_bm25 import BM25Okapi
 
-KB_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
+RUNTIME_DIR = os.getenv("RUNTIME_DIR", "/tmp/salu-bot")
+KB_DIR = os.path.join(RUNTIME_DIR, "knowledge")
+BUNDLED_KB_DIR = os.path.join(os.path.dirname(__file__), "knowledge")
 FULL_MD = os.path.join(KB_DIR, "prospectus.md")
 IMPORTANT_MD = os.path.join(KB_DIR, "important.md")
 os.makedirs(KB_DIR, exist_ok=True)
+
+for filename in ("prospectus.md", "important.md"):
+    bundled_path = os.path.join(BUNDLED_KB_DIR, filename)
+    runtime_path = os.path.join(KB_DIR, filename)
+    if os.path.isfile(bundled_path) and not os.path.exists(runtime_path):
+        shutil.copy2(bundled_path, runtime_path)
 
 STOP = set("a an the of to in for and or is are was be on at by with from as it this that what which who how when where do does i me my you your can".split())
 
