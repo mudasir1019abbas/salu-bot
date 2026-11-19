@@ -126,6 +126,8 @@ def register():
             else:
                 session.clear()
                 session["user_id"] = user_id
+                session["user_name"] = name
+                session["user_email"] = email
                 csrf_token()
                 return redirect(url_for("dashboard"))
     return render_template("auth.html", mode="register", error=error)
@@ -143,7 +145,7 @@ def login():
         with closing(sqlite3.connect(DATABASE)) as db:
             db.row_factory = sqlite3.Row
             user = db.execute(
-                "SELECT id, password_hash FROM users WHERE email = ?",
+                "SELECT id, name, email, password_hash FROM users WHERE email = ?",
                 (email,),
             ).fetchone()
         if user is None or not check_password_hash(user["password_hash"], password):
@@ -151,6 +153,8 @@ def login():
         else:
             session.clear()
             session["user_id"] = user["id"]
+            session["user_name"] = user["name"]
+            session["user_email"] = user["email"]
             csrf_token()
             return redirect(url_for("dashboard"))
     return render_template("auth.html", mode="login", error=error)
@@ -166,20 +170,22 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user = get_user(session["user_id"])
-    if user is None:
-        session.clear()
-        return redirect(url_for("login"))
+    user = {
+        "id": session["user_id"],
+        "name": session.get("user_name", "Student"),
+        "email": session.get("user_email", ""),
+    }
     return render_template("dashboard.html", user=user, knowledge=rag.status())
 
 
 @app.route("/chat")
 @login_required
 def chat_page():
-    user = get_user(session["user_id"])
-    if user is None:
-        session.clear()
-        return redirect(url_for("login"))
+    user = {
+        "id": session["user_id"],
+        "name": session.get("user_name", "Student"),
+        "email": session.get("user_email", ""),
+    }
     return render_template("index.html", user=user)
 
 @app.route("/api/kb/status")
