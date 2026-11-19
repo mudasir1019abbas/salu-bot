@@ -21,7 +21,7 @@ htmlcov/
 
 # Application runtime data
 instance/
-uploads/
+
 *.db
 *.sqlite
 *.sqlite3
