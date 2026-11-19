@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard · SALUBOT</title>
+  <script>tailwind=window.tailwind||{};</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <script>if(localStorage.theme==='dark'||(!localStorage.theme&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')</script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-anim text-slate-800 dark:text-slate-100 min-h-screen">
+  <div class="dashboard-shell">
+    <aside class="glass dashboard-sidebar">
+      <a class="dashboard-brand" href="{{ url_for('dashboard') }}"><img class="brand-logo" src="{{ url_for('static', filename='images/logo/salu-logo-removebg-preview.png') }}" alt=""> SALUBOT</a>
+      <nav class="dashboard-nav" aria-label="Main navigation">
+        <a class="dashboard-nav-link active" href="{{ url_for('dashboard') }}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+        <a class="dashboard-nav-link" href="{{ url_for('chat_page') }}"><i data-lucide="messages-square"></i> Campus assistant</a>
+      </nav>
+      <div class="dashboard-sidebar-note">
+        <span class="status-dot"></span>
+        <div><strong>Your assistant is ready</strong><small>Ask about courses, exams and campus life.</small></div>
+      </div>
+      <div class="dashboard-user">
+        <div class="avatar">{{ user.name[:1]|upper }}</div>
+        <div class="dashboard-user-copy"><strong>{{ user.name }}</strong><small>{{ user.email }}</small></div>
+      </div>
+    </aside>
+
+    <main id="dashboard" class="dashboard-main" data-user-id="{{ user.id }}">
+      <header class="dashboard-header">
+        <div>
+          <p class="label">SALUBOT · Student space</p>
+          <h1>Your dashboard</h1>
+        </div>
+        <div class="dashboard-header-actions">
+          <a class="btn-primary" href="{{ url_for('chat_page') }}"><i data-lucide="message-circle"></i> Ask SALUBOT</a>
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="icon-btn logout-btn" title="Log out" aria-label="Log out"><i data-lucide="log-out"></i><span>Log out</span></button>
+          </form>
+        </div>
+      </header>
+
+      <section class="welcome-card glass">
+        <div class="welcome-copy">
+          <p class="eyebrow">YOUR CAMPUS, MADE EASIER</p>
+          <h2>Good to see you, {{ user.name.split()[0] }}.</h2>
+          <p>Get quick help with university questions, or pick up where you left off.</p>
+          <a class="welcome-link" href="{{ url_for('chat_page') }}">Start a conversation <i data-lucide="arrow-up-right"></i></a>
+        </div>
+        <div class="welcome-art" aria-hidden="true"><img class="welcome-logo" src="{{ url_for('static', filename='images/logo/salu-logo-removebg-preview.png') }}" alt=""></div>
+      </section>
+
+      <section class="dashboard-stats" aria-label="Your SALUBOT activity">
+        <article class="glass stat-card">
+          <div class="stat-icon blue"><i data-lucide="messages-square"></i></div>
+          <p>Saved conversations</p><strong id="chatCount">—</strong>
+        </article>
+        <article class="glass stat-card">
+          <div class="stat-icon green"><i data-lucide="message-circle"></i></div>
+          <p>Messages asked</p><strong id="messageCount">—</strong>
+        </article>
+        <article class="glass stat-card">
+          <div class="stat-icon violet"><i data-lucide="book-open-check"></i></div>
+          <p>Prospectus knowledge</p>
+          <strong>{{ "Ready" if knowledge.prospectus.exists else "Not added" }}</strong>
+        </article>
+      </section>
+
+      <section class="dashboard-lower">
+        <article class="glass dashboard-panel">
+          <div class="panel-heading">
+            <div><p class="label">PICK UP WHERE YOU LEFT OFF</p><h2>Recent conversations</h2></div>
+            <a href="{{ url_for('chat_page') }}">Open assistant <i data-lucide="arrow-up-right"></i></a>
+          </div>
+          <ul id="recentChats" class="recent-chats"></ul>
+          <p id="emptyChats" class="empty-chats">Your conversations will show up here after you chat with SALUBOT.</p>
+        </article>
+        <article class="glass dashboard-panel shortcuts-panel">
+          <div class="panel-heading"><div><p class="label">HERE TO HELP</p><h2>Campus shortcuts</h2></div></div>
+          <a class="dashboard-shortcut" href="{{ url_for('chat_page') }}?q=Where%20can%20I%20find%20the%20library%20and%20what%20are%20its%20timings%3F"><span class="shortcut-icon">📚</span><span><strong>Library</strong><small>Find services and timings</small></span><i data-lucide="arrow-up-right"></i></a>
+          <a class="dashboard-shortcut" href="{{ url_for('chat_page') }}?q=How%20is%20GPA%20calculated%20and%20what%20are%20the%20grading%20policies%3F"><span class="shortcut-icon">🎓</span><span><strong>Grading &amp; GPA</strong><small>Understand academic policies</small></span><i data-lucide="arrow-up-right"></i></a>
+          <a class="dashboard-shortcut" href="{{ url_for('chat_page') }}?q=Help%20me%20build%20a%20weekly%20exam%20preparation%20timetable."><span class="shortcut-icon">📝</span><span><strong>Exam planner</strong><small>Make a study plan</small></span><i data-lucide="arrow-up-right"></i></a>
+          <div class="kb-note"><i data-lucide="info"></i><span>{{ knowledge.chunks }} searchable prospectus chunks available for grounded answers.</span></div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script>
+    const root = document.getElementById('dashboard');
+    let chats = [];
+    try { chats = JSON.parse(localStorage.getItem('unibotChats:' + root.dataset.userId) || '[]'); } catch (error) { chats = []; }
+    const validChats = Array.isArray(chats) ? chats : [];
+    document.getElementById('chatCount').textContent = validChats.length;
+    document.getElementById('messageCount').textContent = validChats.reduce((total, chat) => total + (Array.isArray(chat.messages) ? chat.messages.filter(message => message.role === 'user').length : 0), 0);
+    const recent = document.getElementById('recentChats');
+    validChats.slice(0, 4).forEach(chat => {
+      const item = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = {{ url_for('chat_page')|tojson }} + '?chat=' + encodeURIComponent(chat.id);
+      link.className = 'recent-chat';
+      const icon = document.createElement('span');
+      icon.className = 'recent-chat-icon';
+      icon.innerHTML = '<i data-lucide="message-square"></i>';
+      const title = document.createElement('span');
+      title.className = 'recent-chat-title';
+      title.textContent = chat.title || 'New chat';
+      const arrow = document.createElement('i');
+      arrow.setAttribute('data-lucide', 'arrow-up-right');
+      link.append(icon, title, arrow);
+      item.appendChild(link);
+      recent.appendChild(item);
+    });
+    document.getElementById('emptyChats').hidden = validChats.length > 0;
+    lucide.createIcons();
+  </script>
+</body>
+</html>

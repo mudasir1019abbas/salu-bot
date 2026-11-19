@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SALUBOT — University AI Campus Assistant</title>
+<script>tailwind=window.tailwind||{};</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<script>if(localStorage.theme==='dark'||(!localStorage.theme&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-anim text-slate-800 dark:text-slate-100 h-screen overflow-hidden" data-user-id="{{ user.id }}">
+<div class="flex h-full">
+  <aside id="sidebar" class="glass fixed md:static z-30 inset-y-0 left-0 w-72 -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col p-4 gap-4">
+    <div class="flex items-center gap-2 text-xl font-bold"><img class="brand-logo" src="{{ url_for('static', filename='images/logo/salu-logo-removebg-preview.png') }}" alt=""> SALUBOT</div>
+    <a class="shortcut" href="{{ url_for('dashboard') }}"><i data-lucide="layout-dashboard" class="w-4 h-4 inline"></i> Dashboard</a>
+    <button id="newChat" class="btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> New chat</button>
+    <div>
+      <p class="label">Campus shortcuts</p>
+      <div class="flex flex-col gap-1 mt-2">
+        <button class="shortcut" data-q="Where can I find the library and what are its timings?">📚 Library</button>
+        <button class="shortcut" data-q="How is GPA calculated and what are the grading policies?">🎓 Grading & GPA</button>
+        <button class="shortcut" data-q="Help me build a weekly exam preparation timetable.">📝 Exam planner</button>
+        <button class="shortcut" data-q="Recommend elective courses for a computer science student.">💡 Course ideas</button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-y-auto">
+      <p class="label">Chat history</p>
+      <ul id="historyList" class="mt-2 flex flex-col gap-1"></ul>
+    </div>
+    <div class="chat-account">
+      <div class="avatar">{{ user.name[:1]|upper }}</div>
+      <div class="chat-account-copy"><strong>{{ user.name }}</strong><small>{{ user.email }}</small></div>
+      <form method="post" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="icon-btn" title="Log out" aria-label="Log out"><i data-lucide="log-out"></i></button>
+      </form>
+    </div>
+  </aside>
+  <div id="overlay" class="fixed inset-0 bg-black/40 z-20 hidden md:hidden"></div>
+
+  <main class="flex-1 flex flex-col min-w-0">
+    <header class="glass flex items-center gap-2 px-4 py-3">
+      <button id="menuBtn" class="icon-btn md:hidden" title="Menu"><i data-lucide="menu"></i></button>
+      <h1 class="font-semibold flex-1 truncate">University AI Campus Assistant</h1>
+      <button id="kbBtn" class="icon-btn" title="Knowledge base (PDF)"><i data-lucide="book-open"></i></button>
+      <button id="regenBtn" class="icon-btn" title="Regenerate"><i data-lucide="refresh-cw"></i></button>
+      <button id="dlTxt" class="icon-btn" title="Download .txt"><i data-lucide="file-text"></i></button>
+      <button id="dlJson" class="icon-btn" title="Download .json"><i data-lucide="file-json"></i></button>
+      <button id="clearBtn" class="icon-btn" title="Clear"><i data-lucide="trash-2"></i></button>
+      <button id="soundBtn" class="icon-btn" title="Sound"><i data-lucide="volume-2"></i></button>
+      <button id="themeBtn" class="icon-btn" title="Theme"><i data-lucide="moon"></i></button>
+    </header>
+
+    <section id="messages" class="flex-1 overflow-y-auto px-3 md:px-8 py-6 space-y-4"></section>
+
+    <footer class="px-3 md:px-8 pb-4">
+      <!-- <div id="pills" class="flex gap-2 overflow-x-auto pb-2">
+        <button class="pill">Check GPA criteria</button>
+        <button class="pill">Library timings</button>
+        <button class="pill">Draft email to professor</button>
+        <button class="pill">Exam prep tips</button>
+      </div> -->
+      <div class="glass rounded-2xl flex items-end gap-2 p-2">
+        <textarea id="input" rows="1" maxlength="4000" placeholder="Ask SALUBOT anything…" class="flex-1 resize-none bg-transparent outline-none p-2 max-h-48"></textarea>
+        <button id="sendBtn" class="btn-primary !px-3"><i data-lucide="send" class="w-4 h-4"></i></button>
+      </div>
+      <div class="flex justify-between text-xs opacity-60 mt-1 px-1">
+        <span>Enter to send · Shift+Enter for new line</span><span id="counter">0 / 4000</span>
+      </div>
+    </footer>
+  </main>
+</div>
+<script>window.unibotCsrfToken={{ csrf_token()|tojson }};</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<div id="kbModal" class="kb-modal hidden">
+  <div class="kb-card glass">
+    <h2>📘 Knowledge Base (RAG)</h2>
+    <p id="kbStatus">Loading…</p>
+    <label>1. Upload prospectus PDF<input type="file" id="kbFile" accept="application/pdf"></label>
+    <button id="kbBuild" class="btn-primary">Build knowledge Markdown</button>
+    <p>2. Create the short "important facts" file for fast replies (uses Gemini, takes ~1 min):</p>
+    <button id="kbImportant" class="btn-primary">Create important.md</button>
+    <p>Download: <a href="/api/kb/download/prospectus.md">prospectus.md</a> · <a href="/api/kb/download/important.md">important.md</a></p>
+    <button id="kbClose" class="icon-btn">Close</button>
+  </div>
+</div>
+<script>
+(()=>{const m=document.getElementById('kbModal'),st=document.getElementById('kbStatus');
+async function load(){const s=await (await fetch('/api/kb/status')).json();
+ st.textContent=`prospectus.md: ${s.prospectus.exists?s.prospectus.size_kb+' KB':'missing'} · important.md: ${s.important.exists?s.important.size_kb+' KB':'missing'} · ${s.chunks} searchable chunks`;}
+document.getElementById('kbBtn').onclick=()=>{m.classList.remove('hidden');load();};
+document.getElementById('kbClose').onclick=()=>m.classList.add('hidden');
+document.getElementById('kbBuild').onclick=async()=>{const f=document.getElementById('kbFile').files[0];if(!f)return alert('Choose a PDF first');
+ st.textContent='Reading PDF…';const fd=new FormData();fd.append('pdf',f);fd.append('csrf_token',window.unibotCsrfToken);const r=await (await fetch('/api/kb/build',{method:'POST',body:fd})).json();
+ if(r.error)alert(r.error);load();};
+document.getElementById('kbImportant').onclick=async()=>{st.textContent='Creating important facts… please wait';
+ const r=await (await fetch('/api/kb/important',{method:'POST',headers:{'X-CSRF-Token':window.unibotCsrfToken}})).json();if(r.error)alert(r.error);load();};})();
+</script>
+</body>
+</html>
