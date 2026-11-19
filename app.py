@@ -170,10 +170,11 @@ def logout():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    user = get_user(session["user_id"])
-    if user is None:
-        session.clear()
-        return redirect(url_for("login"))
+    user = {
+        "id": session["user_id"],
+        "name": session.get("user_name", "Student"),
+        "email": session.get("user_email", ""),
+    }
     return render_template("dashboard.html", user=user, knowledge=rag.status())
 
 
